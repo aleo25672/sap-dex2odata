@@ -17,6 +17,9 @@ build/
 output/
 state/
 
+# Vendored tooling (not part of the abapGit project)
+tools/
+
 # OS / editor
 .DS_Store
 Thumbs.db
