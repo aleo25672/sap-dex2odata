@@ -77,14 +77,15 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF '*' IN lv_pattern WITH '%'.
     ENDIF.
 
-    " Released, extraction-enabled CDS views from the released catalog entity.
-    " (Field tokens match the entity element names; ABAP is case-insensitive.)
-    " Fallback if activation flags an unknown element on this release: change the
-    " FROM target to the SQL view IXTRCTNENBLDVW (same field names, guaranteed).
+    " Released, extraction-enabled CDS views from the extraction-enabled-views
+    " catalog. We read the SQL view IXTRCTNENBLDVW directly because its column
+    " names (ENTITYNAME / IS_RELEASED / IS_CDC_ENABLED) are guaranteed; the
+    " released CDS entity I_DataExtractionEnabledView exposes the same data but
+    " under CamelCase element names that vary by release.
     SELECT entityname,
            is_released,
            is_cdc_enabled
-      FROM i_dataextractionenabledview
+      FROM ixtrctnenbldvw
       WHERE is_released = @abap_true
         AND entityname LIKE @lv_pattern
       ORDER BY entityname
