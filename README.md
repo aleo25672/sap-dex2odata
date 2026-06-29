@@ -89,14 +89,72 @@ Tick one or more rows (leading checkbox), then:
   (`/IWBEP/` + `/IWFND/` APIs are release-dependent); until wired they return the manual steps
   (status `P`). Use **Preview** first.
 
-## Deploy
+## Installing & importing with abapGit
 
-Import via [abapGit](https://abapgit.org) (`src/` layout, prefix folder logic) into a package
-(a local package is fine for testing). **Activate all objects together** so dependencies resolve
-in the right order. Then run `Z_DEX2ODATA`.
+This repo is serialized in [abapGit](https://abapgit.org) format (`src/` layout, prefix folder
+logic). To get it into an S/4HANA system:
 
-Dependencies to confirm on your release: tables `IXTRCTNENBLDVW` / `RSODPABAPCDSVIEW`, and
-function module `RODPS_UTILS_DATASOURCE_ACT` (+ types `rodps_t_datasource` / `rodps_t_msg`).
+### 1. Install abapGit (one-time)
+
+1. Download the standalone report from
+   <https://raw.githubusercontent.com/abapGit/build/main/zabapgit_standalone.prog.abap>.
+2. `SE38` → create program **`ZABAPGIT_STANDALONE`** (type *Executable program*, no TOP include).
+3. Paste the whole file, **Save**, **Activate** (Ctrl+F3), run it (F8).
+
+### 2. Trust GitHub's TLS certificate (one-time)
+
+Without this, clone fails with `SSL handshake … SSSLERR_PEER_CERT_UNTRUSTED`.
+
+1. In a browser open <https://github.com>, view the certificate, and export the **CA chain** as
+   Base64 `.cer` files — currently *Sectigo Public Server Authentication CA DV E36*,
+   *Sectigo … Root E46*, and the root *USERTrust ECC Certification Authority*.
+   *(Or via openssl: `openssl s_client -connect github.com:443 -servername github.com -showcerts`.)*
+2. `STRUST` → **Display ↔ Change** → double-click **SSL client SSL Client (Standard)**.
+3. **Import Certificate** (bottom) → pick a CA file (Base64) → **Add to Certificate List**.
+   Repeat for each CA (import the **root first**). Do the same for **SSL Client (Anonymous)** if
+   present. **Save**.
+4. `SMICM` → **Administration → ICM → Exit Soft → Global** (reloads the trust store).
+
+### 3. Create a GitHub Personal Access Token (private repos only)
+
+GitHub no longer accepts your account password over HTTPS — use a PAT as the password.
+
+1. GitHub → avatar → **Settings → Developer settings → Personal access tokens → Tokens (classic)**.
+2. **Generate new token (classic)** → set an expiry → scope **`repo`** (covers clone *and* push).
+3. **Generate** and **copy** the token (shown once).
+
+*(Public repos need no token.)*
+
+### 4. Create a target package
+
+- **Local / testing:** create a `$`-prefixed package, e.g. **`$DEX2ODATA`** (`SE80` → Package →
+  create). `$` packages are local: no software component, no transport prompt. *(abapGit blocks
+  the literal `$TMP`, so use a named `$…` package.)*
+- **Transportable:** a normal `Z…` package with software component **`HOME`** and a transport
+  request.
+
+### 5. Clone the repo
+
+In abapGit: **+ New Online** →
+- URL: `https://github.com/aleo25672/sap-dex2odata.git`
+- Branch: `main`
+- Package: your package from step 4
+- When prompted for credentials: **User** = your GitHub user, **Password** = the **PAT**.
+
+### 6. Pull & activate
+
+After clone, the objects show as new → **Pull**. Then **activate all objects together**
+(select them all and mass-activate) so dependencies resolve in the right order — in particular
+`ZCL_DEX_ODP_CATALOG` must activate before `ZCL_DEX_ODP_ACTIVATOR`/`Z_DEX2ODATA`.
+
+### 7. Getting later updates
+
+When the repo changes, open it in abapGit → **Pull** → mass-activate the changed objects again.
+
+### Release dependencies to confirm
+
+Tables `IXTRCTNENBLDVW` / `RSODPABAPCDSVIEW`, and function module `RODPS_UTILS_DATASOURCE_ACT`
+(+ types `rodps_t_datasource` / `rodps_t_msg`) must exist on your release.
 
 ## License
 
