@@ -82,40 +82,53 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF '*' IN lv_pattern WITH '%'.
     ENDIF.
 
-    " Released, extraction-enabled CDS views from IXTRCTNENBLDVW, joined to
-    " RSODPABAPCDSVIEW to get the SQL view name (needed for the ODP source name
-    " and the FactsOf/DeltaLinksOf entity-set names). Columns:
-    "   IXTRCTNENBLDVW: DATAEXTRACTIONVIEWNAME / ...DESCRIPTION /
-    "                   ISSAPRELEASEDVIEW / DELTACHGDATACAPTUREISSUPPORTED
-    "   RSODPABAPCDSVIEW: DDLNAME (= view name) -> SQLVIEWNAME
-    SELECT v~dataextractionviewname,
-           v~dataextractionviewdescription,
-           v~issapreleasedview,
-           v~deltachgdatacaptureissupported,
-           o~sqlviewname
-      FROM ixtrctnenbldvw AS v
-      LEFT OUTER JOIN rsodpabapcdsview AS o
-        ON o~ddlname = v~dataextractionviewname
-      WHERE v~issapreleasedview = @abap_true
-        AND v~dataextractionviewname LIKE @lv_pattern
-      ORDER BY v~dataextractionviewname
+    " Released, extraction-enabled CDS views from IXTRCTNENBLDVW. Columns:
+    "   DATAEXTRACTIONVIEWNAME / ...DESCRIPTION / ISSAPRELEASEDVIEW /
+    "   DELTACHGDATACAPTUREISSUPPORTED
+    SELECT dataextractionviewname,
+           dataextractionviewdescription,
+           issapreleasedview,
+           deltachgdatacaptureissupported
+      FROM ixtrctnenbldvw
+      WHERE issapreleasedview = @abap_true
+        AND dataextractionviewname LIKE @lv_pattern
+      ORDER BY dataextractionviewname
       INTO TABLE @DATA(lt_views).
+
+    " SQL view name per view, from RSODPABAPCDSVIEW (DDLNAME -> SQLVIEWNAME),
+    " matched case-INSENSITIVELY: IXTRCTNENBLDVW keeps the raw mixed-case view
+    " name while DDLNAME is stored upper case, so a direct join never matches.
+    SELECT ddlname, sqlviewname
+      FROM rsodpabapcdsview
+      INTO TABLE @DATA(lt_map).
+
+    TYPES: BEGIN OF ty_sqlview,
+             ddl_up  TYPE string,
+             sqlview TYPE c LENGTH 30,
+           END OF ty_sqlview.
+    DATA lt_sqlview TYPE SORTED TABLE OF ty_sqlview WITH NON-UNIQUE KEY ddl_up.
+    LOOP AT lt_map INTO DATA(ls_map).
+      INSERT VALUE #( ddl_up  = to_upper( ls_map-ddlname )
+                      sqlview = ls_map-sqlviewname ) INTO TABLE lt_sqlview.
+    ENDLOOP.
 
     LOOP AT lt_views INTO DATA(ls_view).
       DATA(ls_prov) = VALUE ty_provider(
         entity_name    = ls_view-dataextractionviewname
         description    = ls_view-dataextractionviewdescription
-        sql_view_name  = ls_view-sqlviewname
         is_released    = ls_view-issapreleasedview
         is_cdc_enabled = ls_view-deltachgdatacaptureissupported
         odp_context    = mv_context
         readiness      = 'Ready' ).
 
-      " Derive the SEGW/ODP names once the SQL view name is known.
-      IF ls_view-sqlviewname IS NOT INITIAL.
-        ls_prov-odp_source = |{ ls_view-sqlviewname }$F|.
-        ls_prov-facts_set  = |FactsOf{ ls_view-sqlviewname }|.
-        ls_prov-delta_set  = |DeltaLinksOf{ ls_view-sqlviewname }|.
+      " Resolve SQL view name + derive the SEGW/ODP names.
+      READ TABLE lt_sqlview INTO DATA(ls_sv)
+           WITH KEY ddl_up = to_upper( ls_view-dataextractionviewname ).
+      IF sy-subrc = 0 AND ls_sv-sqlview IS NOT INITIAL.
+        ls_prov-sql_view_name = ls_sv-sqlview.
+        ls_prov-odp_source    = |{ ls_sv-sqlview }$F|.
+        ls_prov-facts_set     = |FactsOf{ ls_sv-sqlview }|.
+        ls_prov-delta_set     = |DeltaLinksOf{ ls_sv-sqlview }|.
       ENDIF.
 
       " ---- classify into a family + strategy -----------------------------
