@@ -74,12 +74,17 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_providers.
-    " Optional name filter; treat '*' as the SQL wildcard '%'.
-    DATA(lv_pattern) = |{ iv_name_pattern }|.
+    " Optional name filter (case-sensitive):
+    "   empty        -> all
+    "   contains '*' -> '*' acts as the wildcard (e.g. C_Purchase*DEX)
+    "   plain text   -> contains search (e.g. PurchaseOrder -> %PurchaseOrder%)
+    DATA(lv_pattern) = condense( CONV string( iv_name_pattern ) ).
     IF lv_pattern IS INITIAL.
       lv_pattern = '%'.
-    ELSE.
+    ELSEIF lv_pattern CA '*'.
       REPLACE ALL OCCURRENCES OF '*' IN lv_pattern WITH '%'.
+    ELSE.
+      lv_pattern = |%{ lv_pattern }%|.
     ENDIF.
 
     " Released, extraction-enabled CDS views from IXTRCTNENBLDVW. Columns:
