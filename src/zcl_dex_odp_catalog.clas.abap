@@ -129,6 +129,10 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
         ls_prov-odp_source    = |{ ls_sv-sqlview }$F|.
         ls_prov-facts_set     = |FactsOf{ ls_sv-sqlview }|.
         ls_prov-delta_set     = |DeltaLinksOf{ ls_sv-sqlview }|.
+      ELSE.
+        " No classic SQL view name: typically a CDS view entity, or the ODP
+        " source is not registered yet. Flag it so the blank is explained.
+        ls_prov-reason = 'No SQL view in RSODPABAPCDSVIEW (view entity or ODP source not registered)'.
       ENDIF.
 
       " ---- classify into a family + strategy -----------------------------
