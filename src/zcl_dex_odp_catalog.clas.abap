@@ -16,11 +16,15 @@ CLASS zcl_dex_odp_catalog DEFINITION
       BEGIN OF ty_provider,
         entity_name     TYPE c LENGTH 60,
         description     TYPE c LENGTH 60,
+        sql_view_name   TYPE c LENGTH 30,   " from RSODPABAPCDSVIEW, used in ODP/entity-set names
         family          TYPE c LENGTH 13,   " 'TRANSACTIONAL' / 'MASTER DATA'
         is_released     TYPE abap_bool,
         is_cdc_enabled  TYPE abap_bool,
         extraction_mode TYPE c LENGTH 5,    " see ZIF_DEX_PUBLISHER=>c_mode
         schedule        TYPE c LENGTH 8,    " see ZIF_DEX_PUBLISHER=>c_schedule
+        odp_source      TYPE c LENGTH 35,   " <SQLVIEW>$F  -> type into SEGW ODP redefine
+        facts_set       TYPE c LENGTH 60,   " FactsOf<SQLVIEW>      (initial/full entity set)
+        delta_set       TYPE c LENGTH 60,   " DeltaLinksOf<SQLVIEW> (delta/CDC entity set)
         odp_context     TYPE c LENGTH 32,
         has_service     TYPE abap_bool,
         service_name    TYPE c LENGTH 30,
@@ -78,30 +82,41 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF '*' IN lv_pattern WITH '%'.
     ENDIF.
 
-    " Released, extraction-enabled CDS views from the SQL view IXTRCTNENBLDVW.
-    " Actual column names on this view:
-    "   DATAEXTRACTIONVIEWNAME          - CDS view / entity name
-    "   DATAEXTRACTIONVIEWDESCRIPTION   - description
-    "   ISSAPRELEASEDVIEW               - C1 released flag
-    "   DELTACHGDATACAPTUREISSUPPORTED  - CDC / delta capable flag
-    SELECT dataextractionviewname,
-           dataextractionviewdescription,
-           issapreleasedview,
-           deltachgdatacaptureissupported
-      FROM ixtrctnenbldvw
-      WHERE issapreleasedview = @abap_true
-        AND dataextractionviewname LIKE @lv_pattern
-      ORDER BY dataextractionviewname
+    " Released, extraction-enabled CDS views from IXTRCTNENBLDVW, joined to
+    " RSODPABAPCDSVIEW to get the SQL view name (needed for the ODP source name
+    " and the FactsOf/DeltaLinksOf entity-set names). Columns:
+    "   IXTRCTNENBLDVW: DATAEXTRACTIONVIEWNAME / ...DESCRIPTION /
+    "                   ISSAPRELEASEDVIEW / DELTACHGDATACAPTUREISSUPPORTED
+    "   RSODPABAPCDSVIEW: DDLNAME (= view name) -> SQLVIEWNAME
+    SELECT v~dataextractionviewname,
+           v~dataextractionviewdescription,
+           v~issapreleasedview,
+           v~deltachgdatacaptureissupported,
+           o~sqlviewname
+      FROM ixtrctnenbldvw AS v
+      LEFT OUTER JOIN rsodpabapcdsview AS o
+        ON o~ddlname = v~dataextractionviewname
+      WHERE v~issapreleasedview = @abap_true
+        AND v~dataextractionviewname LIKE @lv_pattern
+      ORDER BY v~dataextractionviewname
       INTO TABLE @DATA(lt_views).
 
     LOOP AT lt_views INTO DATA(ls_view).
       DATA(ls_prov) = VALUE ty_provider(
         entity_name    = ls_view-dataextractionviewname
         description    = ls_view-dataextractionviewdescription
+        sql_view_name  = ls_view-sqlviewname
         is_released    = ls_view-issapreleasedview
         is_cdc_enabled = ls_view-deltachgdatacaptureissupported
         odp_context    = mv_context
         readiness      = 'Ready' ).
+
+      " Derive the SEGW/ODP names once the SQL view name is known.
+      IF ls_view-sqlviewname IS NOT INITIAL.
+        ls_prov-odp_source = |{ ls_view-sqlviewname }$F|.
+        ls_prov-facts_set  = |FactsOf{ ls_view-sqlviewname }|.
+        ls_prov-delta_set  = |DeltaLinksOf{ ls_view-sqlviewname }|.
+      ENDIF.
 
       " ---- classify into a family + strategy -----------------------------
       IF iv_incl_transactional = abap_true

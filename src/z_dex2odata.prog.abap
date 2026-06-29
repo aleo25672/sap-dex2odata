@@ -61,6 +61,9 @@ CLASS lcl_app DEFINITION CREATE PUBLIC.
                 iv_col  TYPE lvc_fname
                 iv_text TYPE string.
     METHODS publish_selected.
+    METHODS activate_selected.
+    METHODS selected_providers
+      RETURNING VALUE(rt_sel) TYPE zcl_dex_odp_catalog=>ty_providers.
     METHODS show_results
       IMPORTING it_results TYPE zif_dex_publisher=>ty_results.
 ENDCLASS.
@@ -105,10 +108,16 @@ CLASS lcl_app IMPLEMENTATION.
         MESSAGE lx->get_text( ) TYPE 'E'.
     ENDTRY.
 
-    " Standard toolbar + a custom "Publish selected" function.
+    " Standard toolbar + custom functions.
     DATA(lo_funcs) = mo_alv->get_functions( ).
     lo_funcs->set_default( abap_true ).
     TRY.
+        lo_funcs->add_function(
+          name     = 'ACTIVATE'
+          icon     = space
+          text     = 'Activate ODP'
+          tooltip  = 'Activate ODP sources for the selected views (Step 1)'
+          position = if_salv_c_function_position=>right_of_salv_functions ).
         lo_funcs->add_function(
           name     = 'PUBLISH'
           icon     = space
@@ -137,11 +146,15 @@ CLASS lcl_app IMPLEMENTATION.
 
     set_col_text( io_cols = lo_cols iv_col = 'ENTITY_NAME'     iv_text = 'CDS Entity' ).
     set_col_text( io_cols = lo_cols iv_col = 'DESCRIPTION'     iv_text = 'Description' ).
+    set_col_text( io_cols = lo_cols iv_col = 'SQL_VIEW_NAME'   iv_text = 'SQL View' ).
     set_col_text( io_cols = lo_cols iv_col = 'FAMILY'          iv_text = 'Family' ).
     set_col_text( io_cols = lo_cols iv_col = 'EXTRACTION_MODE' iv_text = 'Mode' ).
     set_col_text( io_cols = lo_cols iv_col = 'SCHEDULE'        iv_text = 'Schedule' ).
     set_col_text( io_cols = lo_cols iv_col = 'IS_RELEASED'     iv_text = 'Released' ).
     set_col_text( io_cols = lo_cols iv_col = 'IS_CDC_ENABLED'  iv_text = 'CDC/Delta' ).
+    set_col_text( io_cols = lo_cols iv_col = 'ODP_SOURCE'      iv_text = 'ODP Src $F' ).
+    set_col_text( io_cols = lo_cols iv_col = 'FACTS_SET'       iv_text = 'Facts set' ).
+    set_col_text( io_cols = lo_cols iv_col = 'DELTA_SET'       iv_text = 'Delta set' ).
     set_col_text( io_cols = lo_cols iv_col = 'ODP_CONTEXT'     iv_text = 'ODP Context' ).
     set_col_text( io_cols = lo_cols iv_col = 'HAS_SERVICE'    iv_text = 'Published' ).
     set_col_text( io_cols = lo_cols iv_col = 'SERVICE_NAME'   iv_text = 'Service' ).
@@ -162,9 +175,46 @@ CLASS lcl_app IMPLEMENTATION.
 
   METHOD on_added_function.
     CASE e_salv_function.
+      WHEN 'ACTIVATE'.
+        activate_selected( ).
       WHEN 'PUBLISH'.
         publish_selected( ).
     ENDCASE.
+  ENDMETHOD.
+
+  METHOD selected_providers.
+    DATA(lt_rows) = mo_alv->get_selections( )->get_selected_rows( ).
+    LOOP AT lt_rows INTO DATA(lv_row).
+      READ TABLE mt_prov INDEX lv_row INTO DATA(ls_prov).
+      IF sy-subrc = 0.
+        APPEND ls_prov TO rt_sel.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD activate_selected.
+    DATA(lt_sel) = selected_providers( ).
+    IF lt_sel IS INITIAL.
+      MESSAGE 'Select at least one provider first'(m02)
+              TYPE 'S' DISPLAY LIKE 'W'.
+      RETURN.
+    ENDIF.
+
+    DATA(lt_res) = NEW zcl_dex_odp_activator( )->activate( lt_sel ).
+
+    TRY.
+        cl_salv_table=>factory(
+          IMPORTING r_salv_table = DATA(lo_res)
+          CHANGING  t_table      = lt_res ).
+        lo_res->get_columns( )->set_optimize( abap_true ).
+        lo_res->get_display_settings( )->set_list_header( 'ODP activation results' ).
+        lo_res->set_screen_popup(
+          start_column = 5  end_column = 110
+          start_line   = 2  end_line   = 22 ).
+        lo_res->display( ).
+      CATCH cx_salv_msg INTO DATA(lx).
+        MESSAGE lx->get_text( ) TYPE 'I'.
+    ENDTRY.
   ENDMETHOD.
 
   METHOD publish_selected.
