@@ -136,6 +136,7 @@ CLASS lcl_app IMPLEMENTATION.
     lo_cols->set_optimize( abap_true ).
 
     set_col_text( io_cols = lo_cols iv_col = 'ENTITY_NAME'     iv_text = 'CDS Entity' ).
+    set_col_text( io_cols = lo_cols iv_col = 'DESCRIPTION'     iv_text = 'Description' ).
     set_col_text( io_cols = lo_cols iv_col = 'FAMILY'          iv_text = 'Family' ).
     set_col_text( io_cols = lo_cols iv_col = 'EXTRACTION_MODE' iv_text = 'Mode' ).
     set_col_text( io_cols = lo_cols iv_col = 'SCHEDULE'        iv_text = 'Schedule' ).

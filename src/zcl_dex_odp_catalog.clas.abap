@@ -15,6 +15,7 @@ CLASS zcl_dex_odp_catalog DEFINITION
     TYPES:
       BEGIN OF ty_provider,
         entity_name     TYPE c LENGTH 60,
+        description     TYPE c LENGTH 60,
         family          TYPE c LENGTH 13,   " 'TRANSACTIONAL' / 'MASTER DATA'
         is_released     TYPE abap_bool,
         is_cdc_enabled  TYPE abap_bool,
@@ -77,38 +78,41 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
       REPLACE ALL OCCURRENCES OF '*' IN lv_pattern WITH '%'.
     ENDIF.
 
-    " Released, extraction-enabled CDS views from the extraction-enabled-views
-    " catalog. We read the SQL view IXTRCTNENBLDVW directly because its column
-    " names (ENTITYNAME / IS_RELEASED / IS_CDC_ENABLED) are guaranteed; the
-    " released CDS entity I_DataExtractionEnabledView exposes the same data but
-    " under CamelCase element names that vary by release.
-    SELECT entityname,
-           is_released,
-           is_cdc_enabled
+    " Released, extraction-enabled CDS views from the SQL view IXTRCTNENBLDVW.
+    " Actual column names on this view:
+    "   DATAEXTRACTIONVIEWNAME          - CDS view / entity name
+    "   DATAEXTRACTIONVIEWDESCRIPTION   - description
+    "   ISSAPRELEASEDVIEW               - C1 released flag
+    "   DELTACHGDATACAPTUREISSUPPORTED  - CDC / delta capable flag
+    SELECT dataextractionviewname,
+           dataextractionviewdescription,
+           issapreleasedview,
+           deltachgdatacaptureissupported
       FROM ixtrctnenbldvw
-      WHERE is_released = @abap_true
-        AND entityname LIKE @lv_pattern
-      ORDER BY entityname
+      WHERE issapreleasedview = @abap_true
+        AND dataextractionviewname LIKE @lv_pattern
+      ORDER BY dataextractionviewname
       INTO TABLE @DATA(lt_views).
 
     LOOP AT lt_views INTO DATA(ls_view).
       DATA(ls_prov) = VALUE ty_provider(
-        entity_name    = ls_view-entityname
-        is_released    = ls_view-is_released
-        is_cdc_enabled = ls_view-is_cdc_enabled
+        entity_name    = ls_view-dataextractionviewname
+        description    = ls_view-dataextractionviewdescription
+        is_released    = ls_view-issapreleasedview
+        is_cdc_enabled = ls_view-deltachgdatacaptureissupported
         odp_context    = mv_context
         readiness      = 'Ready' ).
 
       " ---- classify into a family + strategy -----------------------------
       IF iv_incl_transactional = abap_true
-         AND ls_view-entityname CP 'C_*DEX'
-         AND ls_view-is_cdc_enabled = abap_true.
+         AND ls_view-dataextractionviewname CP 'C_*DEX'
+         AND ls_view-deltachgdatacaptureissupported = abap_true.
         ls_prov-family          = c_family_transactional.
         ls_prov-extraction_mode = zif_dex_publisher=>c_mode-delta.
         ls_prov-schedule        = zif_dex_publisher=>c_schedule-none.
 
       ELSEIF iv_incl_master = abap_true
-             AND ls_view-entityname CP 'I_*'.
+             AND ls_view-dataextractionviewname CP 'I_*'.
         ls_prov-family          = c_family_master.
         ls_prov-extraction_mode = zif_dex_publisher=>c_mode-full.
         ls_prov-schedule        = iv_master_schedule.
