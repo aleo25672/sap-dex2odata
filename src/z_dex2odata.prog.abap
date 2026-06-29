@@ -22,7 +22,7 @@ REPORT z_dex2odata.
 *----------------------------------------------------------------------*
 SELECTION-SCREEN BEGIN OF BLOCK b_disc WITH FRAME TITLE TEXT-b01.
 PARAMETERS p_ctx  TYPE c LENGTH 32 DEFAULT 'ABAP_CDS' OBLIGATORY.
-PARAMETERS p_name TYPE c LENGTH 30.            " entity name pattern, * = wildcard
+PARAMETERS p_name TYPE c LENGTH 30 LOWER CASE. " entity name pattern (case-sensitive), * = wildcard
 PARAMETERS p_trx  AS CHECKBOX DEFAULT 'X'.     " include C_*DEX transactional (delta)
 PARAMETERS p_mds  AS CHECKBOX DEFAULT 'X'.     " include I_* master data (full)
 PARAMETERS p_rdy  AS CHECKBOX.                 " hide already-published
