@@ -1,7 +1,7 @@
-"! <p class="shorttext synchronized">Derive collision-free SEGW/service names</p>
-"! Turns a (possibly long, mixed-case) ODP/CDS entity name into valid, &lt;=30 char,
-"! unique repository object names. Stateful: remembers names already issued in this
-"! run so two long entities that truncate to the same stem get distinct names.
+" <p class="shorttext synchronized">Derive collision-free SEGW/service names</p>
+" Turns a (possibly long, mixed-case) ODP/CDS entity name into valid, &lt;=30 char,
+" unique repository object names. Stateful: remembers names already issued in this
+" run so two long entities that truncate to the same stem get distinct names.
 CLASS zcl_dex_namer DEFINITION
   PUBLIC
   CREATE PUBLIC.
@@ -9,7 +9,7 @@ CLASS zcl_dex_namer DEFINITION
   PUBLIC SECTION.
     CONSTANTS c_prefix TYPE string VALUE 'ZDEX_'.
 
-    "! Derive target names for one ODP provider / CDS entity.
+    " Derive target names for one ODP provider / CDS entity.
     METHODS derive
       IMPORTING
         iv_odp_name     TYPE clike

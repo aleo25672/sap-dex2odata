@@ -1,12 +1,12 @@
-"! <p class="shorttext synchronized">Publish a master-data CDS view as a full-reload OData service</p>
-"! Implements ZIF_DEX_PUBLISHER for the I_* master-data family: these views are NOT
-"! ODP/CDC extraction-enabled but are small in volume, so they are exposed as a plain
-"! (non-ODP) OData service consumed by full reload on a nightly/weekly schedule.
-"!
-"! Mechanism: SEGW project with a CDS reference data source (no ODP / no delta), or an
-"! equivalent Service Binding. As with the ODP publisher, the programmatic creation +
-"! registration is release-dependent and isolated in CREATE_FULL_SERVICE( ); until
-"! validated it returns status 'P' with the exact manual steps.
+" <p class="shorttext synchronized">Publish a master-data CDS view as a full-reload OData service</p>
+" Implements ZIF_DEX_PUBLISHER for the I_* master-data family: these views are NOT
+" ODP/CDC extraction-enabled but are small in volume, so they are exposed as a plain
+" (non-ODP) OData service consumed by full reload on a nightly/weekly schedule.
+"
+" Mechanism: SEGW project with a CDS reference data source (no ODP / no delta), or an
+" equivalent Service Binding. As with the ODP publisher, the programmatic creation +
+" registration is release-dependent and isolated in CREATE_FULL_SERVICE( ); until
+" validated it returns status 'P' with the exact manual steps.
 CLASS zcl_dex_cds_publisher DEFINITION
   PUBLIC
   CREATE PUBLIC.

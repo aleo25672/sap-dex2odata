@@ -1,14 +1,14 @@
-"! <p class="shorttext synchronized">Publish a DEX CDS view as an ODP-OData service</p>
-"! Implements ZIF_DEX_PUBLISHER via the SEGW "Data Source Reference -&gt; ODP" route:
-"! a SEGW project references the ODP provider (context ABAP_CDS), runtime objects are
-"! generated, and the service is registered on the Gateway hub. Delta semantics of the
-"! DEX/CDC view are preserved by the ODP reference.
-"!
-"! IMPORTANT (see plan): the programmatic SEGW generation + registration uses
-"! /IWBEP/ and /IWFND/ APIs whose exact signatures are release-dependent. Those calls
-"! are isolated in CREATE_SEGW_ODP_PROJECT( ). Until validated on the target release
-"! that method returns status 'P' (pending) with the exact manual steps, so the tool
-"! is fully usable today and the automation is a localized, well-marked extension point.
+" <p class="shorttext synchronized">Publish a DEX CDS view as an ODP-OData service</p>
+" Implements ZIF_DEX_PUBLISHER via the SEGW "Data Source Reference -&gt; ODP" route:
+" a SEGW project references the ODP provider (context ABAP_CDS), runtime objects are
+" generated, and the service is registered on the Gateway hub. Delta semantics of the
+" DEX/CDC view are preserved by the ODP reference.
+"
+" IMPORTANT (see plan): the programmatic SEGW generation + registration uses
+" /IWBEP/ and /IWFND/ APIs whose exact signatures are release-dependent. Those calls
+" are isolated in CREATE_SEGW_ODP_PROJECT( ). Until validated on the target release
+" that method returns status 'P' (pending) with the exact manual steps, so the tool
+" is fully usable today and the automation is a localized, well-marked extension point.
 CLASS zcl_dex_segw_odp_publisher DEFINITION
   PUBLIC
   CREATE PUBLIC.
@@ -22,7 +22,7 @@ CLASS zcl_dex_segw_odp_publisher DEFINITION
   PRIVATE SECTION.
     DATA mo_namer TYPE REF TO zcl_dex_namer.
 
-    "! Release-dependent core. Returns only status + message of the attempt.
+    " Release-dependent core. Returns only status + message of the attempt.
     METHODS create_segw_odp_project
       IMPORTING
         iv_context       TYPE clike

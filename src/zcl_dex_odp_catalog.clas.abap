@@ -1,17 +1,17 @@
-"! <p class="shorttext synchronized">Discover extraction-enabled CDS views (2 families)</p>
-"! Reads the released CDS view I_DataExtractionEnabledView (SQL name IXTRCTNENBLDVW)
-"! and classifies the rows into two families with different extraction strategies:
-"!
-"! * C_*DEX transactional, released + CDC enabled -> DELTA (ODP-OData)
-"! * I_* master data, released (CDC ignored)       -> FULL  (plain OData, scheduled)
-"!
-"! Rows matching neither family are skipped.
+" <p class="shorttext synchronized">Discover extraction-enabled CDS views (2 families)</p>
+" Reads the released CDS view I_DataExtractionEnabledView (SQL name IXTRCTNENBLDVW)
+" and classifies the rows into two families with different extraction strategies:
+"
+" * C_*DEX transactional, released + CDC enabled -> DELTA (ODP-OData)
+" * I_* master data, released (CDC ignored)       -> FULL  (plain OData, scheduled)
+"
+" Rows matching neither family are skipped.
 CLASS zcl_dex_odp_catalog DEFINITION
   PUBLIC
   CREATE PUBLIC.
 
   PUBLIC SECTION.
-    "! One candidate provider (one CDS view) with its assigned strategy
+    " One candidate provider (one CDS view) with its assigned strategy
     TYPES:
       BEGIN OF ty_provider,
         entity_name     TYPE c LENGTH 60,
@@ -32,16 +32,16 @@ CLASS zcl_dex_odp_catalog DEFINITION
       c_family_transactional TYPE c LENGTH 13 VALUE 'TRANSACTIONAL',
       c_family_master        TYPE c LENGTH 13 VALUE 'MASTER DATA'.
 
-    "! @parameter iv_context | ODP context the providers belong to (default ABAP_CDS)
+    " @parameter iv_context | ODP context the providers belong to (default ABAP_CDS)
     METHODS constructor
       IMPORTING iv_context TYPE clike DEFAULT 'ABAP_CDS'.
 
-    "! Read released extraction-enabled CDS views and classify them.
-    "! @parameter iv_name_pattern       | optional entity filter; '*' wildcards allowed
-    "! @parameter iv_incl_transactional | include C_*DEX delta family
-    "! @parameter iv_incl_master        | include I_* master-data (full) family
-    "! @parameter iv_master_schedule    | schedule assigned to the master-data family
-    "! @parameter io_service_check      | optional, marks already-published providers
+    " Read released extraction-enabled CDS views and classify them.
+    " @parameter iv_name_pattern       | optional entity filter; '*' wildcards allowed
+    " @parameter iv_incl_transactional | include C_*DEX delta family
+    " @parameter iv_incl_master        | include I_* master-data (full) family
+    " @parameter iv_master_schedule    | schedule assigned to the master-data family
+    " @parameter io_service_check      | optional, marks already-published providers
     METHODS get_providers
       IMPORTING
         iv_name_pattern       TYPE clike   OPTIONAL
