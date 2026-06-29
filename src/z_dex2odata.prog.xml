@@ -35,6 +35,12 @@
     </item>
     <item>
      <ID>I</ID>
+     <KEY>B04</KEY>
+     <ENTRY>Action (on the filtered set)</ENTRY>
+     <LENGTH>28</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
      <KEY>M01</KEY>
      <ENTRY>No released, CDC-enabled CDS views found for the filter</ENTRY>
      <LENGTH>54</LENGTH>
@@ -47,9 +53,27 @@
     </item>
     <item>
      <ID>S</ID>
+     <KEY>P_ACT</KEY>
+     <ENTRY>Activate ODP sources (Step 1)</ENTRY>
+     <LENGTH>29</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
      <KEY>P_CTX</KEY>
      <ENTRY>ODP context</ENTRY>
      <LENGTH>11</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_DISP</KEY>
+     <ENTRY>Display list only</ENTRY>
+     <LENGTH>17</LENGTH>
+    </item>
+    <item>
+     <ID>S</ID>
+     <KEY>P_PUB</KEY>
+     <ENTRY>Publish OData service</ENTRY>
+     <LENGTH>21</LENGTH>
     </item>
     <item>
      <ID>S</ID>
