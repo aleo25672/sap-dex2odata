@@ -130,9 +130,13 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
         ls_prov-facts_set     = |FactsOf{ ls_sv-sqlview }|.
         ls_prov-delta_set     = |DeltaLinksOf{ ls_sv-sqlview }|.
       ELSE.
-        " No classic SQL view name: typically a CDS view entity, or the ODP
-        " source is not registered yet. Flag it so the blank is explained.
-        ls_prov-reason = 'No SQL view in RSODPABAPCDSVIEW (view entity or ODP source not registered)'.
+        " No classic SQL view name (typically a CDS view entity). Fall back to the
+        " entity name as the ODP source base; verify the exact ODP name in
+        " RODPS_REPL_TEST (context ABAP_CDS).
+        ls_prov-odp_source = |{ ls_view-dataextractionviewname }$F|.
+        ls_prov-facts_set  = |FactsOf{ ls_view-dataextractionviewname }|.
+        ls_prov-delta_set  = |DeltaLinksOf{ ls_view-dataextractionviewname }|.
+        ls_prov-reason     = 'View entity: ODP name = entity (verify in RODPS_REPL_TEST)'.
       ENDIF.
 
       " ---- classify into a family + strategy -----------------------------

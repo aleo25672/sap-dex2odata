@@ -30,13 +30,19 @@ CLASS zcl_dex_odp_activator IMPLEMENTATION.
 
   METHOD activate.
     LOOP AT it_providers INTO DATA(ls_prov).
+      " ODP datasource = classic SQL view name, else the entity name (view entities).
+      DATA(lv_ds) = COND string(
+        WHEN ls_prov-sql_view_name IS NOT INITIAL
+        THEN ls_prov-sql_view_name
+        ELSE ls_prov-entity_name ).
+
       DATA(ls_res) = VALUE ty_result(
         entity_name   = ls_prov-entity_name
-        sql_view_name = ls_prov-sql_view_name ).
+        sql_view_name = lv_ds ).
 
-      IF ls_prov-sql_view_name IS INITIAL.
+      IF lv_ds IS INITIAL.
         ls_res-status  = 'K'.
-        ls_res-message = 'Skipped: no SQL view name (not in RSODPABAPCDSVIEW)'.
+        ls_res-message = 'Skipped: no datasource name'.
         APPEND ls_res TO rt_results.
         CONTINUE.
       ENDIF.
@@ -44,7 +50,7 @@ CLASS zcl_dex_odp_activator IMPLEMENTATION.
       DATA lt_ds  TYPE rodps_t_datasource.
       DATA lt_msg TYPE rodps_t_msg.
       CLEAR: lt_ds, lt_msg.
-      APPEND VALUE #( datasource = ls_prov-sql_view_name ) TO lt_ds.
+      APPEND VALUE #( datasource = lv_ds ) TO lt_ds.
 
       CALL FUNCTION 'RODPS_UTILS_DATASOURCE_ACT'
         EXPORTING
