@@ -137,8 +137,13 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
            END OF ty_tech.
     DATA lt_tech TYPE SORTED TABLE OF ty_tech WITH NON-UNIQUE KEY key_up.
     LOOP AT lt_anno INTO DATA(ls_anno).
+      " DDHEADANNO stores the value as written in source, incl. the surrounding
+      " quotes ('CMMPURORDDEX') - strip them so $F attaches to the name.
+      DATA(lv_tech) = ls_anno-techname.
+      REPLACE ALL OCCURRENCES OF `'` IN lv_tech WITH ``.
+      CONDENSE lv_tech.
       INSERT VALUE #( key_up   = to_upper( ls_anno-strucobjn )
-                      techname = ls_anno-techname ) INTO TABLE lt_tech.
+                      techname = lv_tech ) INTO TABLE lt_tech.
     ENDLOOP.
 
     LOOP AT lt_views INTO DATA(ls_view).
