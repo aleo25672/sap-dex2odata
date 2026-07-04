@@ -3,9 +3,9 @@
 ABAP tool for **S/4HANA** that discovers **data-extraction (DEX) CDS views** and helps expose
 the selected ones as **OData services** for third-party (ODP) extraction.
 
-It reads the extraction-enabled-views catalog **`IXTRCTNENBLDVW`** (joined to
-**`RSODPABAPCDSVIEW`** for the SQL view name) and classifies each view into one of two families
-with a different extraction strategy:
+It reads the extraction-enabled-views catalog **`IXTRCTNENBLDVW`**, resolves each view's **ODP
+technical name** (see [Name resolution](#how-the-odp-technical-name-is-resolved)), and classifies
+each view into one of two families with a different extraction strategy:
 
 | Family | Match | Strategy | Mechanism |
 |--------|-------|----------|-----------|
@@ -19,7 +19,7 @@ with a different extraction strategy:
 | `Z_DEX2ODATA` | report | selection screen + ALV (`CL_SALV_TABLE`) + actions |
 | `Z_ODP_ACTIVATE_ALL_DEX` | report | standalone: bulk-activate all classic ODP-CDS sources |
 | `ZIF_DEX_PUBLISHER` | interface | publish contract + shared types/constants |
-| `ZCL_DEX_ODP_CATALOG` | class | discovery + family classification + name derivation |
+| `ZCL_DEX_ODP_CATALOG` | class | discovery, ODP-name resolution (`RSODPABAPCDSVIEW` + `@Analytics.technicalName`), family classification |
 | `ZCL_DEX_ODP_ACTIVATOR` | class | activate views as ODP sources (`RODPS_UTILS_DATASOURCE_ACT`) |
 | `ZCL_DEX_SERVICE_CHECK` | class | detect already-published services |
 | `ZCL_DEX_NAMER` | class | collision-free SEGW/service name derivation |
@@ -35,7 +35,8 @@ Run the report in SAP GUI (`SE38` / `SA38`).
 | Field | Meaning |
 |-------|---------|
 | **ODP context** | ODP context shown for the providers (default `ABAP_CDS`) |
-| **CDS entity pattern** | optional name filter, **case-sensitive**, `*` = wildcard (e.g. `C_Purchase*`) |
+| **CDS entity pattern** | optional name filter, **case-sensitive**. Plain text = contains search (`PurchaseOrder`); `*` = explicit wildcard (`C_Purchase*DEX`); blank = all |
+| **Action** | **Display list only** / **Activate ODP sources** / **Publish OData service** — runs on the filtered set |
 | **Include C_*DEX (delta)** | include the transactional/delta family |
 | **Include I_* master data (full)** | include the master-data/full family |
 | **Hide already published** | drop rows already exposed as a service |
@@ -50,22 +51,27 @@ Run the report in SAP GUI (`SE38` / `SA38`).
 Each row is one DEX CDS view, with the names you need downstream already derived:
 
 - **CDS Entity** / **Description** — the view and its text
-- **SQL View** — `SQLVIEWNAME` (e.g. `CMMPRITMDEX`)
+- **SQL View** — the resolved **ODP technical name** (classic view: `SQLVIEWNAME`, e.g.
+  `CMMPRITMDEX`; view entity: `@Analytics.technicalName`, e.g. `CMMPURORDDEX`)
 - **Family / Mode / Schedule** — classification + strategy (DELTA / FULL, nightly/weekly)
 - **Released / CDC-Delta** — the catalog flags
-- **ODP Src $F** — the value to type into the SEGW redefinition: `<SQLVIEW>$F`
+- **ODP Src $F** — the value to type into the SEGW redefinition: `<name>$F`
 - **Facts set / Delta set** — the OData entity sets the service exposes
-  (`FactsOf<SQLVIEW>` = full, `DeltaLinksOf<SQLVIEW>` = delta)
+  (`FactsOf<name>` = full, `DeltaLinksOf<name>` = delta)
+- **Reason** — filled when a name could not be resolved
 
-### 3. Toolbar actions
+### 3. Actions
 
-Tick one or more rows (leading checkbox), then:
+Pick an **Action** on the selection screen. It runs on **all rows matching the filter** — narrow
+with the entity pattern to target a subset. (Selection is on the selection screen, not via ALV
+row-selection.)
 
-- **Activate ODP** — *Step 1.* Activates the selected views as ODP sources
-  (`RODPS_UTILS_DATASOURCE_ACT`) so SEGW can find them. A results popup shows success per row.
-- **Publish selected** — routes by family and, in **Preview**, prints the exact per-view recipe
-  (project name, ODP source `<SQLVIEW>$F`, service name, entity sets). With Preview off it runs
-  the publish path (see *Status* below).
+- **Display list only** — just show the grid.
+- **Activate ODP sources** — *Step 1.* Activates the views as ODP sources
+  (`RODPS_UTILS_DATASOURCE_ACT`) so SEGW can find them; a results ALV shows the outcome per row.
+- **Publish OData service** — routes by family and, in **Preview**, prints the per-view recipe
+  (project name, ODP source `<name>$F`, entity sets). With Preview off it runs the publish path
+  (see *Status* below).
 
 ### 4. End-to-end workflow
 
@@ -83,6 +89,43 @@ Tick one or more rows (leading checkbox), then:
    activate if the node is grey/inactive.
 6. Test: `GET /sap/opu/odata/sap/<service>/$metadata` → the `FactsOf…` / `DeltaLinksOf…`
    entity sets should be present; a delta request then returns only changes.
+
+## How the ODP technical name is resolved
+
+Every extraction view needs an **ODP technical name** — that's what SEGW's *Redefine → ODP
+Extraction* expects (as `<name>$F`), and it differs by view kind:
+
+| View kind | How to tell (SE11 → *Data type* → DDL Source) | ODP technical name | Where the tool reads it |
+|-----------|-----------------------------------------------|--------------------|-------------------------|
+| **Classic CDS view** | `@AbapCatalog.sqlViewName: 'CMM…'` + `define view …` | the SQL view name (e.g. `CMMPRITMDEX`) | `RSODPABAPCDSVIEW.SQLVIEWNAME` |
+| **CDS view entity** | `define view entity …` (no `sqlViewName`) + `@Analytics.technicalName: 'CMM…'` | the technical name (e.g. `CMMPURORDDEX`) | `RSODPABAPCDSVIEW.STRUCTOBJNAME`, else the `@Analytics.technicalName` header annotation in **`DDHEADANNO`** |
+
+`ZCL_DEX_ODP_CATALOG` resolves in this order:
+
+1. **`RSODPABAPCDSVIEW`** by `DDLNAME` (matched **case-insensitively** — `DDLNAME` is stored upper
+   case while the catalog view name is mixed case): use `SQLVIEWNAME` if present, else
+   `STRUCTOBJNAME`.
+2. **Fallback: `DDHEADANNO`** where `NAME = 'Analytics.technicalName'`, keyed on `STRUCOBJN` =
+   entity. The stored `VALUE` keeps the source quotes (`'CMM…'`) — the tool strips them.
+
+The resolved name shows in the **SQL View** column and drives `<name>$F` / `FactsOf<name>` /
+`DeltaLinksOf<name>`. The authoritative cross-check is **SEGW's F4** on the ODP source field: it
+lists the live ODP framework (context `ABAP_CDS`) — the same names.
+
+## Notes & gotchas (learned the hard way)
+
+- **`RODPS_REPL_TEST` only finds *activated* ODP sources.** A view that isn't activated yet won't
+  appear there under any name — activate it first (Step 1), then test.
+- **`RSODPABAPCDSVIEW` is not a complete list.** It reliably holds classic views; view entities
+  may be absent, which is why the tool falls back to `@Analytics.technicalName`.
+- **`RODPS_UTILS_DATASOURCE_ACT` `sy-subrc` is unreliable** — it can return `0` even when nothing
+  was activated. Confirm real availability in `RODPS_REPL_TEST` (or that SEGW can find the `$F`).
+- **A registered service returns HTTP 403** until its **ICF node** is activated in `SICF`.
+- Field-name / casing surprises worth remembering: `IXTRCTNENBLDVW` columns are
+  `DATAEXTRACTIONVIEWNAME` / `DATAEXTRACTIONVIEWDESCRIPTION` / `ISSAPRELEASEDVIEW` /
+  `DELTACHGDATACAPTUREISSUPPORTED` (not `IS_RELEASED` etc.); `RSODPABAPCDSVIEW` columns are
+  `SQLVIEWNAME` / `DDLNAME` / `STRUCTOBJNAME`; `DDLNAME` is upper case; `DDHEADANNO.VALUE` keeps
+  the annotation's quotes.
 
 ## Status / automation
 
@@ -158,8 +201,9 @@ When the repo changes, open it in abapGit → **Pull** → mass-activate the cha
 
 ### Release dependencies to confirm
 
-Tables `IXTRCTNENBLDVW` / `RSODPABAPCDSVIEW`, and function module `RODPS_UTILS_DATASOURCE_ACT`
-(+ types `rodps_t_datasource` / `rodps_t_msg`) must exist on your release.
+Tables `IXTRCTNENBLDVW`, `RSODPABAPCDSVIEW`, `DDHEADANNO`, and function module
+`RODPS_UTILS_DATASOURCE_ACT` (+ types `rodps_t_datasource` / `rodps_t_msg`) must exist on your
+release.
 
 ## License
 
