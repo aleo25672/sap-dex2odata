@@ -34,12 +34,12 @@ CLASS zcl_dex_odp_activator IMPLEMENTATION.
         entity_name   = ls_prov-entity_name
         sql_view_name = ls_prov-sql_view_name ).
 
-      " Only classic ODP-CDS sources (with a SQL view name in RSODPABAPCDSVIEW) can
-      " be activated this way. View entities have no SQL view name and are not ODP
-      " datasources here - skip them rather than fake an activation.
+      " sql_view_name holds the ODP technical name (SQLVIEWNAME for classic views,
+      " STRUCTOBJNAME for view entities). Blank means the view is not in
+      " RSODPABAPCDSVIEW, so there is nothing to activate.
       IF ls_prov-sql_view_name IS INITIAL.
         ls_res-status  = 'K'.
-        ls_res-message = 'Skipped: CDS view entity (no SQL view) - not a classic ODP CDS source'.
+        ls_res-message = 'Skipped: not in RSODPABAPCDSVIEW (no ODP technical name)'.
         APPEND ls_res TO rt_results.
         CONTINUE.
       ENDIF.

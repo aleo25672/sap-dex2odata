@@ -100,21 +100,26 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
       ORDER BY dataextractionviewname
       INTO TABLE @DATA(lt_views).
 
-    " SQL view name per view, from RSODPABAPCDSVIEW (DDLNAME -> SQLVIEWNAME),
-    " matched case-INSENSITIVELY: IXTRCTNENBLDVW keeps the raw mixed-case view
-    " name while DDLNAME is stored upper case, so a direct join never matches.
-    SELECT ddlname, sqlviewname
+    " ODP technical name per view, from RSODPABAPCDSVIEW. A view is either:
+    "   classic      -> name is in SQLVIEWNAME     (e.g. CMMPRITMDEX)
+    "   view entity  -> SQLVIEWNAME blank, name is in STRUCTOBJNAME
+    "                   (= @Analytics.technicalName, e.g. CMMPURORDDEX)
+    " Matched case-INSENSITIVELY (DDLNAME is stored upper case).
+    SELECT ddlname, sqlviewname, structobjname
       FROM rsodpabapcdsview
       INTO TABLE @DATA(lt_map).
 
     TYPES: BEGIN OF ty_sqlview,
-             ddl_up  TYPE string,
-             sqlview TYPE c LENGTH 30,
+             ddl_up TYPE string,
+             name   TYPE c LENGTH 30,   " effective ODP technical name
            END OF ty_sqlview.
     DATA lt_sqlview TYPE SORTED TABLE OF ty_sqlview WITH NON-UNIQUE KEY ddl_up.
     LOOP AT lt_map INTO DATA(ls_map).
-      INSERT VALUE #( ddl_up  = to_upper( ls_map-ddlname )
-                      sqlview = ls_map-sqlviewname ) INTO TABLE lt_sqlview.
+      INSERT VALUE #( ddl_up = to_upper( ls_map-ddlname )
+                      name   = COND #( WHEN ls_map-sqlviewname IS NOT INITIAL
+                                       THEN ls_map-sqlviewname
+                                       ELSE ls_map-structobjname ) )
+             INTO TABLE lt_sqlview.
     ENDLOOP.
 
     LOOP AT lt_views INTO DATA(ls_view).
@@ -126,19 +131,16 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
         odp_context    = mv_context
         readiness      = 'Ready' ).
 
-      " Resolve SQL view name + derive the SEGW/ODP names.
+      " Resolve the ODP technical name + derive the SEGW/ODP names.
       READ TABLE lt_sqlview INTO DATA(ls_sv)
            WITH KEY ddl_up = to_upper( ls_view-dataextractionviewname ).
-      IF sy-subrc = 0 AND ls_sv-sqlview IS NOT INITIAL.
-        ls_prov-sql_view_name = ls_sv-sqlview.
-        ls_prov-odp_source    = |{ ls_sv-sqlview }$F|.
-        ls_prov-facts_set     = |FactsOf{ ls_sv-sqlview }|.
-        ls_prov-delta_set     = |DeltaLinksOf{ ls_sv-sqlview }|.
+      IF sy-subrc = 0 AND ls_sv-name IS NOT INITIAL.
+        ls_prov-sql_view_name = ls_sv-name.
+        ls_prov-odp_source    = |{ ls_sv-name }$F|.
+        ls_prov-facts_set     = |FactsOf{ ls_sv-name }|.
+        ls_prov-delta_set     = |DeltaLinksOf{ ls_sv-name }|.
       ELSE.
-        " No SQL view name = CDS view entity. These are not in RSODPABAPCDSVIEW and
-        " are NOT classic ODP-CDS sources, so the SQL-view -> $F -> SEGW-ODP path does
-        " not apply. Leave the derived names blank and flag the row.
-        ls_prov-reason = 'CDS view entity (no SQL view) - not a classic ODP CDS source; excluded from this flow'.
+        ls_prov-reason = 'No ODP technical name in RSODPABAPCDSVIEW (not exposed as an ODP source)'.
       ENDIF.
 
       " ---- classify into a family + strategy -----------------------------
