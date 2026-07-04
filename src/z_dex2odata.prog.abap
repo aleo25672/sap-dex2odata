@@ -125,7 +125,12 @@ CLASS lcl_app IMPLEMENTATION.
           IMPORTING r_salv_table = DATA(lo_res)
           CHANGING  t_table      = lt_res ).
         lo_res->get_functions( )->set_default( abap_true ).
-        lo_res->get_columns( )->set_optimize( abap_true ).
+        DATA(lo_cols) = lo_res->get_columns( ).
+        lo_cols->set_optimize( abap_true ).
+        set_col_text( io_cols = lo_cols iv_col = 'ENTITY_NAME'   iv_text = 'CDS Entity' ).
+        set_col_text( io_cols = lo_cols iv_col = 'SQL_VIEW_NAME' iv_text = 'ODP Source' ).
+        set_col_text( io_cols = lo_cols iv_col = 'STATUS'        iv_text = 'Status' ).
+        set_col_text( io_cols = lo_cols iv_col = 'MESSAGE'       iv_text = 'Message' ).
         lo_res->get_display_settings( )->set_list_header(
           |ODP activation results - { lines( lt_res ) } source(s)| ).
         lo_res->display( ).
@@ -169,7 +174,17 @@ CLASS lcl_app IMPLEMENTATION.
           IMPORTING r_salv_table = DATA(lo_res)
           CHANGING  t_table      = lt_results ).
         lo_res->get_functions( )->set_default( abap_true ).
-        lo_res->get_columns( )->set_optimize( abap_true ).
+        DATA(lo_cols) = lo_res->get_columns( ).
+        lo_cols->set_optimize( abap_true ).
+        set_col_text( io_cols = lo_cols iv_col = 'ODP_NAME'     iv_text = 'CDS Entity' ).
+        set_col_text( io_cols = lo_cols iv_col = 'MODE'         iv_text = 'Mode' ).
+        set_col_text( io_cols = lo_cols iv_col = 'SCHEDULE'     iv_text = 'Schedule' ).
+        set_col_text( io_cols = lo_cols iv_col = 'SEGW_PROJECT' iv_text = 'SEGW Project' ).
+        set_col_text( io_cols = lo_cols iv_col = 'SERVICE_NAME' iv_text = 'Service' ).
+        set_col_text( io_cols = lo_cols iv_col = 'SERVICE_URL'  iv_text = 'Service URL' ).
+        set_col_text( io_cols = lo_cols iv_col = 'STATUS'       iv_text = 'Status' ).
+        set_col_text( io_cols = lo_cols iv_col = 'MESSAGE'      iv_text = 'Message / recipe' ).
+        set_col_text( io_cols = lo_cols iv_col = 'ODP_CONTEXT'  iv_text = 'Context' ).
         lo_res->get_display_settings( )->set_list_header(
           |Publish results ({ COND string( WHEN p_prev = abap_true THEN `preview` ELSE `live` ) })| ).
         lo_res->display( ).
