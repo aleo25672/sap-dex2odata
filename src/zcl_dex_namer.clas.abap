@@ -7,7 +7,8 @@ CLASS zcl_dex_namer DEFINITION
   CREATE PUBLIC.
 
   PUBLIC SECTION.
-    CONSTANTS c_prefix TYPE string VALUE 'ZDEX_'.
+    CONSTANTS c_prefix TYPE string VALUE 'Z_'.
+    CONSTANTS c_suffix TYPE string VALUE '_SRV'.
 
     " Derive target names for one ODP provider / CDS entity.
     METHODS derive
@@ -33,12 +34,16 @@ ENDCLASS.
 CLASS zcl_dex_namer IMPLEMENTATION.
 
   METHOD derive.
+    " Names follow Z_<entity>_SRV. The entity already carries its C_/I_ prefix,
+    " so this yields e.g. C_PurchaseOrderDEX -> project Z_C_PURCHASEORDERDEX,
+    " service Z_C_PURCHASEORDERDEX_SRV  (and Z_I_..._SRV for master data).
     DATA(lv_core) = sanitize( iv_odp_name ).
+    " Reserve room for the trailing suffix within the 30-char object-name limit.
     DATA(lv_stem) = make_unique( iv_base   = |{ c_prefix }{ lv_core }|
-                                 iv_maxlen = 30 ).
+                                 iv_maxlen = 30 - strlen( c_suffix ) ).
     rs_names-segw_project    = lv_stem.
-    rs_names-service_name    = lv_stem.
-    rs_names-external_name   = lv_stem.
+    rs_names-service_name    = |{ lv_stem }{ c_suffix }|.
+    rs_names-external_name   = |{ lv_stem }{ c_suffix }|.
     rs_names-service_version = '0001'.
   ENDMETHOD.
 
