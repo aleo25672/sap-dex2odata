@@ -17,6 +17,7 @@ with a different extraction strategy:
 | Object | Type | Purpose |
 |--------|------|---------|
 | `Z_DEX2ODATA` | report | selection screen + ALV (`CL_SALV_TABLE`) + actions |
+| `Z_ODP_ACTIVATE_ALL_DEX` | report | standalone: bulk-activate all classic ODP-CDS sources |
 | `ZIF_DEX_PUBLISHER` | interface | publish contract + shared types/constants |
 | `ZCL_DEX_ODP_CATALOG` | class | discovery + family classification + name derivation |
 | `ZCL_DEX_ODP_ACTIVATOR` | class | activate views as ODP sources (`RODPS_UTILS_DATASOURCE_ACT`) |
