@@ -62,6 +62,7 @@ CLASS zcl_dex_odp_catalog DEFINITION
 
     METHODS enrich_service
       IMPORTING io_service_check TYPE REF TO zcl_dex_service_check
+                iv_service_name  TYPE clike
       CHANGING  cs_provider      TYPE ty_provider.
 ENDCLASS.
 
@@ -146,6 +147,8 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
                       techname = lv_tech ) INTO TABLE lt_tech.
     ENDLOOP.
 
+    DATA(lo_namer) = NEW zcl_dex_namer( ).
+
     LOOP AT lt_views INTO DATA(ls_view).
       DATA(ls_prov) = VALUE ty_provider(
         entity_name    = ls_view-dataextractionviewname
@@ -200,7 +203,9 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
       ENDIF.
 
       IF io_service_check IS BOUND.
+        DATA(lv_srv) = lo_namer->derive( ls_prov-entity_name )-service_name.
         enrich_service( EXPORTING io_service_check = io_service_check
+                                  iv_service_name  = lv_srv
                         CHANGING  cs_provider      = ls_prov ).
       ENDIF.
 
@@ -209,8 +214,8 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD enrich_service.
-    DATA(ls_svc) = io_service_check->check( cs_provider-entity_name ).
-    IF ls_svc-determinable = abap_true AND ls_svc-exists = abap_true.
+    DATA(ls_svc) = io_service_check->check( iv_service_name ).
+    IF ls_svc-exists = abap_true.
       cs_provider-has_service  = abap_true.
       cs_provider-service_name = ls_svc-service_name.
       cs_provider-readiness    = 'Published'.

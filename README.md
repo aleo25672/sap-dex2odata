@@ -21,7 +21,7 @@ each view into one of two families with a different extraction strategy:
 | `ZIF_DEX_PUBLISHER` | interface | publish contract + shared types/constants |
 | `ZCL_DEX_ODP_CATALOG` | class | discovery, ODP-name resolution (`RSODPABAPCDSVIEW` + `@Analytics.technicalName`), family classification |
 | `ZCL_DEX_ODP_ACTIVATOR` | class | activate views as ODP sources (`RODPS_UTILS_DATASOURCE_ACT`) |
-| `ZCL_DEX_SERVICE_CHECK` | class | detect already-published services |
+| `ZCL_DEX_SERVICE_CHECK` | class | detect already-registered services (Gateway hub `/IWFND/I_MED_SRH`) |
 | `ZCL_DEX_NAMER` | class | collision-free SEGW/service name derivation |
 | `ZCL_DEX_SEGW_ODP_PUBLISHER` | class | delta family: SEGW ODP redefinition recipe |
 | `ZCL_DEX_CDS_PUBLISHER` | class | master-data family: plain CDS OData, full reload |
@@ -58,6 +58,9 @@ Each row is one DEX CDS view, with the names you need downstream already derived
 - **ODP Src $F** — the value to type into the SEGW redefinition: `<name>$F`
 - **Facts set / Delta set** — the OData entity sets the service exposes
   (`FactsOf<name>` = full, `DeltaLinksOf<name>` = delta)
+- **Published / Service** — set when a matching **active** service (`Z_<entity>_SRV`) is already
+  registered on the Gateway hub (checked against `/IWFND/I_MED_SRH`). Use **Hide already
+  published** to drop these rows.
 - **Reason** — filled when a name could not be resolved
 
 ### 3. Actions
@@ -201,9 +204,9 @@ When the repo changes, open it in abapGit → **Pull** → mass-activate the cha
 
 ### Release dependencies to confirm
 
-Tables `IXTRCTNENBLDVW`, `RSODPABAPCDSVIEW`, `DDHEADANNO`, and function module
-`RODPS_UTILS_DATASOURCE_ACT` (+ types `rodps_t_datasource` / `rodps_t_msg`) must exist on your
-release.
+Tables `IXTRCTNENBLDVW`, `RSODPABAPCDSVIEW`, `DDHEADANNO`, `/IWFND/I_MED_SRH`, and function
+module `RODPS_UTILS_DATASOURCE_ACT` (+ types `rodps_t_datasource` / `rodps_t_msg`) must exist on
+your release.
 
 ## License
 
