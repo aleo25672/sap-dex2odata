@@ -153,6 +153,8 @@ flagged as published — tell the tool's author to broaden the match, or rename 
 - **`RODPS_UTILS_DATASOURCE_ACT` `sy-subrc` is unreliable** — it can return `0` even when nothing
   was activated. Confirm real availability in `RODPS_REPL_TEST` (or that SEGW can find the `$F`).
 - **A registered service returns HTTP 403** until its **ICF node** is activated in `SICF`.
+- **`/IWFND/I_MED_SRH.IS_ACTIVE` uses `'A'`** (Active), not `'X'` — and the registered
+  `OBJECT_NAME` / `SERVICE_NAME` are the service name *without* the `_0001` version suffix.
 - Field-name / casing surprises worth remembering: `IXTRCTNENBLDVW` columns are
   `DATAEXTRACTIONVIEWNAME` / `DATAEXTRACTIONVIEWDESCRIPTION` / `ISSAPRELEASEDVIEW` /
   `DELTACHGDATACAPTUREISSUPPORTED` (not `IS_RELEASED` etc.); `RSODPABAPCDSVIEW` columns are
