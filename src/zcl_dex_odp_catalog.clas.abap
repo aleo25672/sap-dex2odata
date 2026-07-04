@@ -122,6 +122,25 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
              INTO TABLE lt_sqlview.
     ENDLOOP.
 
+    " Fallback source: the @Analytics.technicalName header annotation, stored in
+    " DDHEADANNO (STRUCOBJN = entity, NAME = annotation, VALUE = value). This is
+    " where a view entity's ODP technical name (e.g. CMMPURORDDEX) lives when the
+    " view is not in RSODPABAPCDSVIEW.
+    SELECT strucobjn, value AS techname
+      FROM ddheadanno
+      WHERE upper( name ) = 'ANALYTICS.TECHNICALNAME'
+      INTO TABLE @DATA(lt_anno).
+
+    TYPES: BEGIN OF ty_tech,
+             key_up   TYPE string,
+             techname TYPE c LENGTH 30,
+           END OF ty_tech.
+    DATA lt_tech TYPE SORTED TABLE OF ty_tech WITH NON-UNIQUE KEY key_up.
+    LOOP AT lt_anno INTO DATA(ls_anno).
+      INSERT VALUE #( key_up   = to_upper( ls_anno-strucobjn )
+                      techname = ls_anno-techname ) INTO TABLE lt_tech.
+    ENDLOOP.
+
     LOOP AT lt_views INTO DATA(ls_view).
       DATA(ls_prov) = VALUE ty_provider(
         entity_name    = ls_view-dataextractionviewname
@@ -131,16 +150,30 @@ CLASS zcl_dex_odp_catalog IMPLEMENTATION.
         odp_context    = mv_context
         readiness      = 'Ready' ).
 
-      " Resolve the ODP technical name + derive the SEGW/ODP names.
+      " Resolve the ODP technical name: RSODPABAPCDSVIEW first (classic + view
+      " entities registered there), else @Analytics.technicalName (DDHEADANNO).
+      DATA lv_name TYPE c LENGTH 30.
+      CLEAR lv_name.
       READ TABLE lt_sqlview INTO DATA(ls_sv)
            WITH KEY ddl_up = to_upper( ls_view-dataextractionviewname ).
-      IF sy-subrc = 0 AND ls_sv-name IS NOT INITIAL.
-        ls_prov-sql_view_name = ls_sv-name.
-        ls_prov-odp_source    = |{ ls_sv-name }$F|.
-        ls_prov-facts_set     = |FactsOf{ ls_sv-name }|.
-        ls_prov-delta_set     = |DeltaLinksOf{ ls_sv-name }|.
+      IF sy-subrc = 0.
+        lv_name = ls_sv-name.
+      ENDIF.
+      IF lv_name IS INITIAL.
+        READ TABLE lt_tech INTO DATA(ls_tech)
+             WITH KEY key_up = to_upper( ls_view-dataextractionviewname ).
+        IF sy-subrc = 0.
+          lv_name = ls_tech-techname.
+        ENDIF.
+      ENDIF.
+
+      IF lv_name IS NOT INITIAL.
+        ls_prov-sql_view_name = lv_name.
+        ls_prov-odp_source    = |{ lv_name }$F|.
+        ls_prov-facts_set     = |FactsOf{ lv_name }|.
+        ls_prov-delta_set     = |DeltaLinksOf{ lv_name }|.
       ELSE.
-        ls_prov-reason = 'No ODP technical name in RSODPABAPCDSVIEW (not exposed as an ODP source)'.
+        ls_prov-reason = 'No ODP technical name (RSODPABAPCDSVIEW / @Analytics.technicalName)'.
       ENDIF.
 
       " ---- classify into a family + strategy -----------------------------
