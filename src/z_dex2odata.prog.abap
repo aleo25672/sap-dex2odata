@@ -111,7 +111,7 @@ CLASS lcl_app IMPLEMENTATION.
         MESSAGE lx->get_text( ) TYPE 'E'.
     ENDTRY.
 
-    lo_alv->get_functions( )->set_default( abap_true ).
+    lo_alv->get_functions( )->set_all( abap_true ).
     set_columns( lo_alv->get_columns( ) ).
     lo_alv->get_display_settings( )->set_list_header(
       |DEX CDS views ({ p_ctx }) - { lines( mt_prov ) } rows| ).
@@ -124,7 +124,7 @@ CLASS lcl_app IMPLEMENTATION.
         cl_salv_table=>factory(
           IMPORTING r_salv_table = DATA(lo_res)
           CHANGING  t_table      = lt_res ).
-        lo_res->get_functions( )->set_default( abap_true ).
+        lo_res->get_functions( )->set_all( abap_true ).
         DATA(lo_cols) = lo_res->get_columns( ).
         lo_cols->set_optimize( abap_true ).
         set_col_text( io_cols = lo_cols iv_col = 'ENTITY_NAME'   iv_text = 'CDS Entity' ).
@@ -173,7 +173,7 @@ CLASS lcl_app IMPLEMENTATION.
         cl_salv_table=>factory(
           IMPORTING r_salv_table = DATA(lo_res)
           CHANGING  t_table      = lt_results ).
-        lo_res->get_functions( )->set_default( abap_true ).
+        lo_res->get_functions( )->set_all( abap_true ).
         DATA(lo_cols) = lo_res->get_columns( ).
         lo_cols->set_optimize( abap_true ).
         set_col_text( io_cols = lo_cols iv_col = 'ODP_NAME'     iv_text = 'CDS Entity' ).
