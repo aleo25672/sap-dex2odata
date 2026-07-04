@@ -11,7 +11,7 @@ CLASS zcl_dex_service_check DEFINITION
     TYPES:
       BEGIN OF ty_status,
         exists       TYPE abap_bool,
-        service_name TYPE c LENGTH 30,
+        service_name TYPE c LENGTH 40,
         determinable TYPE abap_bool,
       END OF ty_status.
 

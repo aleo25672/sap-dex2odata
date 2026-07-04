@@ -27,7 +27,7 @@ CLASS zcl_dex_odp_catalog DEFINITION
         delta_set       TYPE c LENGTH 60,   " DeltaLinksOf<SQLVIEW> (delta/CDC entity set)
         odp_context     TYPE c LENGTH 32,
         has_service     TYPE abap_bool,
-        service_name    TYPE c LENGTH 30,
+        service_name    TYPE c LENGTH 40,
         readiness       TYPE c LENGTH 12,
         reason          TYPE string,
       END OF ty_provider,

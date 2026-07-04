@@ -23,10 +23,10 @@ INTERFACE zif_dex_publisher
   " Generated object names for one OData service
   TYPES:
     BEGIN OF ty_names,
-      segw_project    TYPE c LENGTH 30,
-      service_name    TYPE c LENGTH 30,
+      segw_project    TYPE c LENGTH 30,   " SEGW project - object-name limit 30
+      service_name    TYPE c LENGTH 40,   " external service name - may exceed 30
       service_version TYPE n LENGTH 4,
-      external_name   TYPE c LENGTH 30,
+      external_name   TYPE c LENGTH 40,
     END OF ty_names,
 
     " Options that steer a publish run
@@ -47,7 +47,7 @@ INTERFACE zif_dex_publisher
       mode         TYPE c LENGTH 5,
       schedule     TYPE c LENGTH 8,
       segw_project TYPE c LENGTH 30,
-      service_name TYPE c LENGTH 30,
+      service_name TYPE c LENGTH 40,
       service_url  TYPE string,
       status       TYPE c LENGTH 1,
       message      TYPE string,
