@@ -70,14 +70,18 @@ Tick one or more rows (leading checkbox), then:
 ### 4. End-to-end workflow
 
 1. Run the report, filter to the views you want.
-2. Select rows → **Activate ODP**. Verify in `RODPS_REPL_TEST` (context `ABAP_CDS`,
-   ODP name = the **SQL View**).
+2. Set **Action = Activate ODP sources** (narrow with the entity pattern). Verify in
+   `RODPS_REPL_TEST` (context `ABAP_CDS`, ODP name = the **SQL View**).
 3. In **SEGW**: create a project → *Data Model → Redefine → ODP Extraction* →
    ODP context **ABAP Core Data Services**, ODP source = the **ODP Src $F** value from the grid →
    **Generate Runtime Objects**. (The grid's *Publish/Preview* gives you the project + names.)
 4. In **`/IWFND/MAINT_SERVICE`** → *Add Service* → system alias `LOCAL` → the generated technical
    service → *Add Selected Services*.
-5. Test: `GET /sap/opu/odata/sap/<service>/$metadata` → the `FactsOf…` / `DeltaLinksOf…`
+5. **Activate the ICF node.** The service returns HTTP 403 until its ICF node is active: in
+   `SICF`, go to `default_host/sap/opu/odata/sap/<service>` and *Activate Service*
+   (right-click → Activate Service). Some systems auto-activate it on registration — check, and
+   activate if the node is grey/inactive.
+6. Test: `GET /sap/opu/odata/sap/<service>/$metadata` → the `FactsOf…` / `DeltaLinksOf…`
    entity sets should be present; a delta request then returns only changes.
 
 ## Status / automation
