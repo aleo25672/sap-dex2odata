@@ -34,11 +34,12 @@ CLASS zcl_dex_service_check IMPLEMENTATION.
 
     " Registered + active services on the SAP Gateway hub. Match either the
     " technical service name (OBJECT_NAME) or the external name (SERVICE_NAME).
+    " IS_ACTIVE uses 'A' (Active) here, not 'X'.
     SELECT SINGLE service_name
       FROM /iwfnd/i_med_srh
       WHERE ( object_name  = @iv_service_name
            OR service_name = @iv_service_name )
-        AND is_active = @abap_true
+        AND is_active = 'A'
       INTO @DATA(lv_found).
 
     IF sy-subrc = 0.
