@@ -72,9 +72,10 @@ row-selection.)
 - **Display list only** — just show the grid.
 - **Activate ODP sources** — *Step 1.* Activates the views as ODP sources
   (`RODPS_UTILS_DATASOURCE_ACT`) so SEGW can find them; a results ALV shows the outcome per row.
-- **Publish OData service** — routes by family and, in **Preview**, prints the per-view recipe
-  (project name, ODP source `<name>$F`, entity sets). With Preview off it runs the publish path
-  (see *Status* below).
+- **Publish OData service** — **does not create objects yet**; it produces a per-view **recipe**.
+  It derives the target names (project `Z_<entity>`, service `Z_<entity>_SRV`) and outputs the
+  steps to run in SEGW + `/IWFND` (status `V` in Preview, `P` otherwise). The actual generation is
+  a stubbed extension point (see *Status* below).
 
 ### 4. End-to-end workflow
 
@@ -114,6 +115,34 @@ Extraction* expects (as `<name>$F`), and it differs by view kind:
 The resolved name shows in the **SQL View** column and drives `<name>$F` / `FactsOf<name>` /
 `DeltaLinksOf<name>`. The authoritative cross-check is **SEGW's F4** on the ODP source field: it
 lists the live ODP framework (context `ABAP_CDS`) — the same names.
+
+## Generated object names
+
+Names follow **`Z_<entity>_SRV`** (`ZCL_DEX_NAMER`); since the entity keeps its `C_`/`I_` prefix
+you get `Z_C_…` / `Z_I_…`:
+
+| CDS view | SEGW project | OData service |
+|----------|--------------|---------------|
+| `C_PurchaseRequisitionItemDEX` | `Z_C_PURCHASEREQUISITIONITEMDEX` | `Z_C_PURCHASEREQUISITIONITEMDEX_SRV` |
+| `I_PurchaseOrderType` | `Z_I_PURCHASEORDERTYPE` | `Z_I_PURCHASEORDERTYPE_SRV` |
+
+- The **SEGW project** name is capped at **30** chars (repository object-name limit; truncated and
+  made unique if needed).
+- The **service** name is `project + _SRV` and **may exceed 30** — external OData service names can
+  be longer (the example above is 34 chars).
+
+The **Published** check (`/IWFND/I_MED_SRH`) matches this exact derived name, so it only recognizes
+services registered under `Z_<entity>_SRV`. If you name your services differently, they won't be
+flagged as published — tell the tool's author to broaden the match, or rename to the convention.
+
+## Where created / registered services appear
+
+- **Registered + active (consumable):** `/IWFND/MAINT_SERVICE` (Service Catalog) — filter the
+  Technical Service Name by `Z_*_SRV`. Also flagged **Published** in the tool; raw table is
+  `/IWFND/I_MED_SRH`.
+- **Created in SEGW (project — maybe not yet registered):** transaction `SEGW`, projects `Z_C_…` /
+  `Z_I_…`.
+- **Test one:** `/IWFND/GW_CLIENT`, or browse `…/sap/opu/odata/sap/<service>/$metadata`.
 
 ## Notes & gotchas (learned the hard way)
 
